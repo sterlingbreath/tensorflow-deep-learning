@@ -21,11 +21,7 @@ def load_and_prep_image(filename, img_shape=224, scale=True):
   img = tf.image.decode_jpeg(img)
   # Resize the image
   img = tf.image.resize(img, [img_shape, img_shape])
-  if scale:
-    # Rescale the image (get all values between 0 and 1)
-    return img/255.
-  else:
-    return img
+  return img/255. if scale else img
 
 # Note: The following confusion matrix code is a remix of Scikit-Learn's 
 # plot_confusion_matrix function - https://scikit-learn.org/stable/modules/generated/sklearn.metrics.plot_confusion_matrix.html
@@ -35,7 +31,7 @@ import numpy as np
 from sklearn.metrics import confusion_matrix
 
 # Our function needs a different name to sklearn's plot_confusion_matrix
-def make_confusion_matrix(y_true, y_pred, classes=None, figsize=(10, 10), text_size=15, norm=False, savefig=False): 
+def make_confusion_matrix(y_true, y_pred, classes=None, figsize=(10, 10), text_size=15, norm=False, savefig=False):
   """Makes a labelled confusion matrix comparing predictions and ground truth labels.
 
   If classes is passed, confusion matrix will be labelled, if not, integer class values
@@ -71,11 +67,7 @@ def make_confusion_matrix(y_true, y_pred, classes=None, figsize=(10, 10), text_s
   fig.colorbar(cax)
 
   # Are there a list of classes?
-  if classes:
-    labels = classes
-  else:
-    labels = np.arange(cm.shape[0])
-  
+  labels = classes or np.arange(cm.shape[0])
   # Label the axes
   ax.set(title="Confusion Matrix",
          xlabel="Predicted label",
@@ -84,7 +76,7 @@ def make_confusion_matrix(y_true, y_pred, classes=None, figsize=(10, 10), text_s
          yticks=np.arange(n_classes), 
          xticklabels=labels, # axes will labeled with class names (if they exist) or ints
          yticklabels=labels)
-  
+
   # Make x-axis labels appear on bottom
   ax.xaxis.set_label_position("bottom")
   ax.xaxis.tick_bottom()
@@ -145,7 +137,8 @@ def create_tensorboard_callback(dir_name, experiment_name):
     dir_name: target directory to store TensorBoard log files
     experiment_name: name of experiment directory (e.g. efficientnet_model_1)
   """
-  log_dir = dir_name + "/" + experiment_name + "/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+  log_dir = (f"{dir_name}/{experiment_name}/" +
+             datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
   tensorboard_callback = tf.keras.callbacks.TensorBoard(
       log_dir=log_dir
   )
@@ -194,7 +187,7 @@ def compare_historys(original_history, new_history, initial_epochs=5):
       new_history: History object from continued model training (after original_history)
       initial_epochs: Number of epochs in original_history (new_history plot starts from here) 
     """
-    
+
     # Get original history measurements
     acc = original_history.history["accuracy"]
     loss = original_history.history["loss"]
@@ -281,8 +274,9 @@ def calculate_results(y_true, y_pred):
   model_accuracy = accuracy_score(y_true, y_pred) * 100
   # Calculate model precision, recall and f1 score using "weighted average
   model_precision, model_recall, model_f1, _ = precision_recall_fscore_support(y_true, y_pred, average="weighted")
-  model_results = {"accuracy": model_accuracy,
-                  "precision": model_precision,
-                  "recall": model_recall,
-                  "f1": model_f1}
-  return model_results
+  return {
+      "accuracy": model_accuracy,
+      "precision": model_precision,
+      "recall": model_recall,
+      "f1": model_f1,
+  }
